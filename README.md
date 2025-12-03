@@ -51,6 +51,9 @@ maximum memory efficiency. It allows you to directly access serialized data with
 
     It doesn't need to be the same language/schema version, FlatBuffers ensures the data is readable across languages and schema versions. See the [`Rust` example](https://github.com/google/flatbuffers/blob/master/samples/sample_binary.rs#L92-L106) reading the data written by `C++`.
 
+
+
+
 ## Documentation
 
 **Go to our [landing page][] to browse our documentation.**
