@@ -20,6 +20,14 @@
 #include "flatbuffers/base.h"
 #include "flatbuffers/verifier.h"
 
+// includes for std::variant based union accessors -- present only in C++17 and
+// later
+#if ((__cplusplus >= 201703L) || \
+     (defined(_MSVC_LANG) && (_MSVC_LANG >= 201703L)))
+#include <functional>
+#include <variant>
+#endif  // C++17
+
 namespace flatbuffers {
 
 // "tables" use an offset table (possibly shared) that allows fields to be
@@ -197,6 +205,21 @@ inline flatbuffers::Optional<bool> Table::GetOptional<uint8_t, bool>(
   return field_offset ? Optional<bool>(ReadScalar<uint8_t>(p) != 0)
                       : Optional<bool>();
 }
+
+// helper types for union accessors using std::variant -- present only in C++17
+// and later
+#if ((__cplusplus >= 201703L) || \
+     (defined(_MSVC_LANG) && (_MSVC_LANG >= 201703L)))
+
+// Tag type for when a flatbuffers union has an type outside the range of the
+// generated enum.
+struct UnknownUnionType {};
+
+template <typename... Ts>
+using FlatbuffersVariant = std::variant<std::monostate, UnknownUnionType,
+                                        std::reference_wrapper<Ts>...>;
+
+#endif  // C++17
 
 }  // namespace flatbuffers
 

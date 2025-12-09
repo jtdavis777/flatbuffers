@@ -1431,6 +1431,42 @@ class CppGenerator : public BaseGenerator {
       code_ += UnionVerifyTemplateDecl();
       code_ += UnionVectorVerifySignature(enum_def) + ";";
       code_ += "";
+
+      // Generate the variant using statements if c++ version >= 17
+      // example:
+      //   using EquippedVariant = FlatbuffersVariant<const
+      //   MyGame::Sample::Weapon, const MyGame::Sample::Armor>; using
+      //   MutableEquippedVariant = FlatbuffersVariant<MyGame::Sample::Weapon,
+      //   MyGame::Sample::Armor>;
+      if (opts_.g_cpp_std >= cpp::CPP_STD_17) {
+        std::string variant_types;
+        std::string mutable_variant_types;
+        for (const auto& ev : enum_def.Vals()) {
+          if (ev->IsZero()) {
+            continue;
+          }
+          const auto native_type = GetUnionElement(*ev, false, opts_);
+          if (!variant_types.empty()) {
+            variant_types += ", ";
+            mutable_variant_types += ", ";
+          }
+          variant_types += "const " + native_type;
+          mutable_variant_types += native_type;
+        }
+        code_.SetValue("VARIANT_TYPES", variant_types);
+        code_.SetValue("MUTABLE_VARIANT_TYPES", mutable_variant_types);
+        code_ +=
+            "using {{ENUM_NAME}}Variant = ::flatbuffers::FlatbuffersVariant<"
+            "{{VARIANT_TYPES}}>;";
+
+        if (opts_.mutable_buffer) {
+          code_ +=
+              "using Mutable{{ENUM_NAME}}Variant = "
+              "::flatbuffers::FlatbuffersVariant<"
+              "{{MUTABLE_VARIANT_TYPES}}>;";
+        }
+        code_ += "";
+      }
     }
   }
 
@@ -2629,6 +2665,21 @@ class CppGenerator : public BaseGenerator {
     const auto& type = field.value.type;
     auto u = type.enum_def;
 
+    // generate variant accessors
+    // only will add to file if c++ >= 17
+    std::string union_variant_function = "  ";
+    std::string mutable_union_variant_function = "  ";
+
+    union_variant_function +=
+        WrapInNameSpace(u->defined_namespace, "{{ENUM_NAME}}Variant") +
+        " {{FIELD_NAME}}_variant() const {\n";
+    union_variant_function += "    switch ({{U_GET_TYPE}}()) {\n";
+
+    mutable_union_variant_function +=
+        WrapInNameSpace(u->defined_namespace, "{{ENUM_NAME}}Variant") +
+        " mutable_{{FIELD_NAME}}_variant() {\n";
+    mutable_union_variant_function += "    switch ({{U_GET_TYPE}}()) {\n";
+
     if (!type.enum_def->uses_multiple_type_instances)
       code_ +=
           "  template<typename T> "
@@ -2636,19 +2687,44 @@ class CppGenerator : public BaseGenerator {
 
     for (auto u_it = u->Vals().begin(); u_it != u->Vals().end(); ++u_it) {
       auto& ev = **u_it;
+
+      code_.SetValue("U_GET_TYPE",
+                     EscapeKeyword(Name(field) + UnionTypeFieldSuffix()));
+      code_.SetValue("U_ELEMENT_TYPE", WrapInNameSpace(u->defined_namespace,
+                                                       GetEnumValUse(*u, ev)));
+
       if (ev.union_type.base_type == BASE_TYPE_NONE) {
+        union_variant_function +=
+            "      case " +
+            WrapInNameSpace(u->defined_namespace, GetEnumValUse(*u, ev)) +
+            ":\n";
+        union_variant_function += "        return std::monostate{};\n";
+
+        mutable_union_variant_function +=
+            "      case " +
+            WrapInNameSpace(u->defined_namespace, GetEnumValUse(*u, ev)) +
+            ":\n";
+        mutable_union_variant_function += "        return std::monostate{};\n";
         continue;
       }
       auto full_struct_name = GetUnionElement(ev, false, opts_);
 
       // @TODO: Mby make this decisions more universal? How?
-      code_.SetValue("U_GET_TYPE",
-                     EscapeKeyword(Name(field) + UnionTypeFieldSuffix()));
-      code_.SetValue("U_ELEMENT_TYPE", WrapInNameSpace(u->defined_namespace,
-                                                       GetEnumValUse(*u, ev)));
       code_.SetValue("U_FIELD_TYPE", "const " + full_struct_name + " *");
-      code_.SetValue("U_FIELD_NAME", Name(field) + "_as_" + Name(ev));
+      std::string field_name = Name(field) + "_as_" + Name(ev);
+      code_.SetValue("U_FIELD_NAME", field_name);
       code_.SetValue("U_NULLABLE", NullableExtension());
+
+      union_variant_function +=
+          "      case " +
+          WrapInNameSpace(u->defined_namespace, GetEnumValUse(*u, ev)) + ":\n";
+      union_variant_function += "        return *" + field_name + "();\n";
+
+      mutable_union_variant_function +=
+          "      case " +
+          WrapInNameSpace(u->defined_namespace, GetEnumValUse(*u, ev)) + ":\n";
+      mutable_union_variant_function +=
+          "        return *mutable_" + field_name + "();\n";
 
       // `const Type *union_name_asType() const` accessor.
       code_ += "  {{U_FIELD_TYPE}}{{U_NULLABLE}}{{U_FIELD_NAME}}() const {";
@@ -2657,6 +2733,23 @@ class CppGenerator : public BaseGenerator {
           "static_cast<{{U_FIELD_TYPE}}>({{FIELD_NAME}}()) "
           ": nullptr;";
       code_ += "  }";
+    }
+
+    union_variant_function += "      default:\n";
+    union_variant_function += "        return UnknownUnionType{};\n";
+    union_variant_function += "    }\n";
+    union_variant_function += "  }\n";
+
+    mutable_union_variant_function += "      default:\n";
+    mutable_union_variant_function += "        return UnknownUnionType();\n";
+    mutable_union_variant_function += "    }\n";
+    mutable_union_variant_function += "  }\n";
+
+    if (opts_.g_cpp_std >= CPP_STD_17) {
+      code_ += union_variant_function;
+      if (opts_.mutable_buffer) {
+        code_ += mutable_union_variant_function;
+      }
     }
   }
 
