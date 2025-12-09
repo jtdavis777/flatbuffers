@@ -2670,14 +2670,18 @@ class CppGenerator : public BaseGenerator {
     std::string union_variant_function = "  ";
     std::string mutable_union_variant_function = "  ";
 
+    const std::string namespaced_variant =
+        WrapInNameSpace(u->defined_namespace, "{{ENUM_NAME}}Variant");
+
+    const std::string mutable_namespaced_variant =
+        WrapInNameSpace(u->defined_namespace, "Mutable{{ENUM_NAME}}Variant");
+
     union_variant_function +=
-        WrapInNameSpace(u->defined_namespace, "{{ENUM_NAME}}Variant") +
-        " {{FIELD_NAME}}_variant() const {\n";
+        namespaced_variant + " {{FIELD_NAME}}_variant() const {\n";
     union_variant_function += "    switch ({{U_GET_TYPE}}()) {\n";
 
     mutable_union_variant_function +=
-        WrapInNameSpace(u->defined_namespace, "{{ENUM_NAME}}Variant") +
-        " mutable_{{FIELD_NAME}}_variant() {\n";
+        mutable_namespaced_variant + " mutable_{{FIELD_NAME}}_variant() {\n";
     mutable_union_variant_function += "    switch ({{U_GET_TYPE}}()) {\n";
 
     if (!type.enum_def->uses_multiple_type_instances)
@@ -2715,16 +2719,22 @@ class CppGenerator : public BaseGenerator {
       code_.SetValue("U_FIELD_NAME", field_name);
       code_.SetValue("U_NULLABLE", NullableExtension());
 
+      const std::string enum_idx = type.enum_def->ToString(ev);
+
       union_variant_function +=
           "      case " +
           WrapInNameSpace(u->defined_namespace, GetEnumValUse(*u, ev)) + ":\n";
-      union_variant_function += "        return *" + field_name + "();\n";
+      union_variant_function += "        return " + namespaced_variant +
+                                "{std::in_place_index<" + enum_idx + ">, *" +
+                                field_name + "()};\n";
 
       mutable_union_variant_function +=
           "      case " +
           WrapInNameSpace(u->defined_namespace, GetEnumValUse(*u, ev)) + ":\n";
-      mutable_union_variant_function +=
-          "        return *mutable_" + field_name + "();\n";
+      mutable_union_variant_function += "        return Mutable" +
+                                        mutable_namespaced_variant +
+                                        "{std::in_place_index<" + enum_idx +
+                                        ">, *mutable_" + field_name + "()};\n";
 
       // `const Type *union_name_asType() const` accessor.
       code_ += "  {{U_FIELD_TYPE}}{{U_NULLABLE}}{{U_FIELD_NAME}}() const {";
