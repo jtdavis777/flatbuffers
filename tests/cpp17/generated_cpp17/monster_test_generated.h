@@ -328,6 +328,9 @@ bool VerifyAny(::flatbuffers::VerifierTemplate<B> &verifier, const void *obj, An
 template <bool B = false>
 bool VerifyAnyVector(::flatbuffers::VerifierTemplate<B> &verifier, const ::flatbuffers::Vector<::flatbuffers::Offset<void>> *values, const ::flatbuffers::Vector<Any> *types);
 
+using AnyVariant = ::flatbuffers::FlatbuffersVariant<const MyGame::Example::Monster, const MyGame::Example::TestSimpleTableWithEnum, const MyGame::Example2::Monster>;
+using MutableAnyVariant = ::flatbuffers::FlatbuffersVariant<MyGame::Example::Monster, MyGame::Example::TestSimpleTableWithEnum, MyGame::Example2::Monster>;
+
 enum class AnyUniqueAliases : uint8_t {
   NONE = 0,
   M = 1,
@@ -457,6 +460,9 @@ bool VerifyAnyUniqueAliases(::flatbuffers::VerifierTemplate<B> &verifier, const 
 template <bool B = false>
 bool VerifyAnyUniqueAliasesVector(::flatbuffers::VerifierTemplate<B> &verifier, const ::flatbuffers::Vector<::flatbuffers::Offset<void>> *values, const ::flatbuffers::Vector<AnyUniqueAliases> *types);
 
+using AnyUniqueAliasesVariant = ::flatbuffers::FlatbuffersVariant<const MyGame::Example::Monster, const MyGame::Example::TestSimpleTableWithEnum, const MyGame::Example2::Monster>;
+using MutableAnyUniqueAliasesVariant = ::flatbuffers::FlatbuffersVariant<MyGame::Example::Monster, MyGame::Example::TestSimpleTableWithEnum, MyGame::Example2::Monster>;
+
 enum class AnyAmbiguousAliases : uint8_t {
   NONE = 0,
   M1 = 1,
@@ -543,6 +549,9 @@ template <bool B = false>
 bool VerifyAnyAmbiguousAliases(::flatbuffers::VerifierTemplate<B> &verifier, const void *obj, AnyAmbiguousAliases type);
 template <bool B = false>
 bool VerifyAnyAmbiguousAliasesVector(::flatbuffers::VerifierTemplate<B> &verifier, const ::flatbuffers::Vector<::flatbuffers::Offset<void>> *values, const ::flatbuffers::Vector<AnyAmbiguousAliases> *types);
+
+using AnyAmbiguousAliasesVariant = ::flatbuffers::FlatbuffersVariant<const MyGame::Example::Monster, const MyGame::Example::Monster, const MyGame::Example::Monster>;
+using MutableAnyAmbiguousAliasesVariant = ::flatbuffers::FlatbuffersVariant<MyGame::Example::Monster, MyGame::Example::Monster, MyGame::Example::Monster>;
 
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(2) Test FLATBUFFERS_FINAL_CLASS {
  private:
@@ -1481,6 +1490,36 @@ struct Monster FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   const MyGame::Example2::Monster *test_as_MyGame_Example2_Monster() const {
     return test_type() == MyGame::Example::Any::MyGame_Example2_Monster ? static_cast<const MyGame::Example2::Monster *>(test()) : nullptr;
   }
+  MyGame::Example::AnyVariant test_variant() const {
+    switch (test_type()) {
+      case MyGame::Example::Any::NONE:
+        return std::monostate{};
+      case MyGame::Example::Any::Monster:
+        return MyGame::Example::AnyVariant{std::in_place_index<1>, *test_as_Monster()};
+      case MyGame::Example::Any::TestSimpleTableWithEnum:
+        return MyGame::Example::AnyVariant{std::in_place_index<2>, *test_as_TestSimpleTableWithEnum()};
+      case MyGame::Example::Any::MyGame_Example2_Monster:
+        return MyGame::Example::AnyVariant{std::in_place_index<3>, *test_as_MyGame_Example2_Monster()};
+      default:
+        return UnknownUnionType{};
+    }
+  }
+
+  MyGame::Example::MutableAnyVariant mutable_test_variant() {
+    switch (test_type()) {
+      case MyGame::Example::Any::NONE:
+        return std::monostate{};
+      case MyGame::Example::Any::Monster:
+        return MutableMyGame::Example::MutableAnyVariant{std::in_place_index<1>, *mutable_test_as_Monster()};
+      case MyGame::Example::Any::TestSimpleTableWithEnum:
+        return MutableMyGame::Example::MutableAnyVariant{std::in_place_index<2>, *mutable_test_as_TestSimpleTableWithEnum()};
+      case MyGame::Example::Any::MyGame_Example2_Monster:
+        return MutableMyGame::Example::MutableAnyVariant{std::in_place_index<3>, *mutable_test_as_MyGame_Example2_Monster()};
+      default:
+        return UnknownUnionType();
+    }
+  }
+
   void *mutable_test() {
     return GetPointer<void *>(VT_TEST);
   }
@@ -1716,6 +1755,36 @@ struct Monster FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   const MyGame::Example2::Monster *any_unique_as_M2() const {
     return any_unique_type() == MyGame::Example::AnyUniqueAliases::M2 ? static_cast<const MyGame::Example2::Monster *>(any_unique()) : nullptr;
   }
+  MyGame::Example::AnyUniqueAliasesVariant any_unique_variant() const {
+    switch (any_unique_type()) {
+      case MyGame::Example::AnyUniqueAliases::NONE:
+        return std::monostate{};
+      case MyGame::Example::AnyUniqueAliases::M:
+        return MyGame::Example::AnyUniqueAliasesVariant{std::in_place_index<1>, *any_unique_as_M()};
+      case MyGame::Example::AnyUniqueAliases::TS:
+        return MyGame::Example::AnyUniqueAliasesVariant{std::in_place_index<2>, *any_unique_as_TS()};
+      case MyGame::Example::AnyUniqueAliases::M2:
+        return MyGame::Example::AnyUniqueAliasesVariant{std::in_place_index<3>, *any_unique_as_M2()};
+      default:
+        return UnknownUnionType{};
+    }
+  }
+
+  MyGame::Example::MutableAnyUniqueAliasesVariant mutable_any_unique_variant() {
+    switch (any_unique_type()) {
+      case MyGame::Example::AnyUniqueAliases::NONE:
+        return std::monostate{};
+      case MyGame::Example::AnyUniqueAliases::M:
+        return MutableMyGame::Example::MutableAnyUniqueAliasesVariant{std::in_place_index<1>, *mutable_any_unique_as_M()};
+      case MyGame::Example::AnyUniqueAliases::TS:
+        return MutableMyGame::Example::MutableAnyUniqueAliasesVariant{std::in_place_index<2>, *mutable_any_unique_as_TS()};
+      case MyGame::Example::AnyUniqueAliases::M2:
+        return MutableMyGame::Example::MutableAnyUniqueAliasesVariant{std::in_place_index<3>, *mutable_any_unique_as_M2()};
+      default:
+        return UnknownUnionType();
+    }
+  }
+
   void *mutable_any_unique() {
     return GetPointer<void *>(VT_ANY_UNIQUE);
   }
@@ -1734,6 +1803,36 @@ struct Monster FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   const MyGame::Example::Monster *any_ambiguous_as_M3() const {
     return any_ambiguous_type() == MyGame::Example::AnyAmbiguousAliases::M3 ? static_cast<const MyGame::Example::Monster *>(any_ambiguous()) : nullptr;
   }
+  MyGame::Example::AnyAmbiguousAliasesVariant any_ambiguous_variant() const {
+    switch (any_ambiguous_type()) {
+      case MyGame::Example::AnyAmbiguousAliases::NONE:
+        return std::monostate{};
+      case MyGame::Example::AnyAmbiguousAliases::M1:
+        return MyGame::Example::AnyAmbiguousAliasesVariant{std::in_place_index<1>, *any_ambiguous_as_M1()};
+      case MyGame::Example::AnyAmbiguousAliases::M2:
+        return MyGame::Example::AnyAmbiguousAliasesVariant{std::in_place_index<2>, *any_ambiguous_as_M2()};
+      case MyGame::Example::AnyAmbiguousAliases::M3:
+        return MyGame::Example::AnyAmbiguousAliasesVariant{std::in_place_index<3>, *any_ambiguous_as_M3()};
+      default:
+        return UnknownUnionType{};
+    }
+  }
+
+  MyGame::Example::MutableAnyAmbiguousAliasesVariant mutable_any_ambiguous_variant() {
+    switch (any_ambiguous_type()) {
+      case MyGame::Example::AnyAmbiguousAliases::NONE:
+        return std::monostate{};
+      case MyGame::Example::AnyAmbiguousAliases::M1:
+        return MutableMyGame::Example::MutableAnyAmbiguousAliasesVariant{std::in_place_index<1>, *mutable_any_ambiguous_as_M1()};
+      case MyGame::Example::AnyAmbiguousAliases::M2:
+        return MutableMyGame::Example::MutableAnyAmbiguousAliasesVariant{std::in_place_index<2>, *mutable_any_ambiguous_as_M2()};
+      case MyGame::Example::AnyAmbiguousAliases::M3:
+        return MutableMyGame::Example::MutableAnyAmbiguousAliasesVariant{std::in_place_index<3>, *mutable_any_ambiguous_as_M3()};
+      default:
+        return UnknownUnionType();
+    }
+  }
+
   void *mutable_any_ambiguous() {
     return GetPointer<void *>(VT_ANY_AMBIGUOUS);
   }

@@ -163,6 +163,9 @@ bool VerifyCharacter(::flatbuffers::VerifierTemplate<B> &verifier, const void *o
 template <bool B = false>
 bool VerifyCharacterVector(::flatbuffers::VerifierTemplate<B> &verifier, const ::flatbuffers::Vector<::flatbuffers::Offset<void>> *values, const ::flatbuffers::Vector<Character> *types);
 
+using CharacterVariant = ::flatbuffers::FlatbuffersVariant<const Attacker, const Rapunzel, const BookReader, const BookReader, const ::flatbuffers::String, const ::flatbuffers::String>;
+using MutableCharacterVariant = ::flatbuffers::FlatbuffersVariant<Attacker, Rapunzel, BookReader, BookReader, ::flatbuffers::String, ::flatbuffers::String>;
+
 enum class Gadget : uint8_t {
   NONE = 0,
   FallingTub = 1,
@@ -272,6 +275,9 @@ template <bool B = false>
 bool VerifyGadget(::flatbuffers::VerifierTemplate<B> &verifier, const void *obj, Gadget type);
 template <bool B = false>
 bool VerifyGadgetVector(::flatbuffers::VerifierTemplate<B> &verifier, const ::flatbuffers::Vector<::flatbuffers::Offset<void>> *values, const ::flatbuffers::Vector<Gadget> *types);
+
+using GadgetVariant = ::flatbuffers::FlatbuffersVariant<const FallingTub, const HandFan>;
+using MutableGadgetVariant = ::flatbuffers::FlatbuffersVariant<FallingTub, HandFan>;
 
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Rapunzel FLATBUFFERS_FINAL_CLASS {
  private:
@@ -595,6 +601,48 @@ struct Movie FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   const ::flatbuffers::String *main_character_as_Unused() const {
     return main_character_type() == Character::Unused ? static_cast<const ::flatbuffers::String *>(main_character()) : nullptr;
   }
+  CharacterVariant main_character_variant() const {
+    switch (main_character_type()) {
+      case Character::NONE:
+        return std::monostate{};
+      case Character::MuLan:
+        return CharacterVariant{std::in_place_index<1>, *main_character_as_MuLan()};
+      case Character::Rapunzel:
+        return CharacterVariant{std::in_place_index<2>, *main_character_as_Rapunzel()};
+      case Character::Belle:
+        return CharacterVariant{std::in_place_index<3>, *main_character_as_Belle()};
+      case Character::BookFan:
+        return CharacterVariant{std::in_place_index<4>, *main_character_as_BookFan()};
+      case Character::Other:
+        return CharacterVariant{std::in_place_index<5>, *main_character_as_Other()};
+      case Character::Unused:
+        return CharacterVariant{std::in_place_index<6>, *main_character_as_Unused()};
+      default:
+        return UnknownUnionType{};
+    }
+  }
+
+  MutableCharacterVariant mutable_main_character_variant() {
+    switch (main_character_type()) {
+      case Character::NONE:
+        return std::monostate{};
+      case Character::MuLan:
+        return MutableMutableCharacterVariant{std::in_place_index<1>, *mutable_main_character_as_MuLan()};
+      case Character::Rapunzel:
+        return MutableMutableCharacterVariant{std::in_place_index<2>, *mutable_main_character_as_Rapunzel()};
+      case Character::Belle:
+        return MutableMutableCharacterVariant{std::in_place_index<3>, *mutable_main_character_as_Belle()};
+      case Character::BookFan:
+        return MutableMutableCharacterVariant{std::in_place_index<4>, *mutable_main_character_as_BookFan()};
+      case Character::Other:
+        return MutableMutableCharacterVariant{std::in_place_index<5>, *mutable_main_character_as_Other()};
+      case Character::Unused:
+        return MutableMutableCharacterVariant{std::in_place_index<6>, *mutable_main_character_as_Unused()};
+      default:
+        return UnknownUnionType();
+    }
+  }
+
   void *mutable_main_character() {
     return GetPointer<void *>(VT_MAIN_CHARACTER);
   }
