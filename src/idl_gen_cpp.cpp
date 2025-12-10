@@ -2670,6 +2670,8 @@ class CppGenerator : public BaseGenerator {
     std::string union_variant_function = "  ";
     std::string mutable_union_variant_function = "  ";
 
+    code_.SetValue("ENUM_NAME", u->name);
+
     const std::string namespaced_variant =
         WrapInNameSpace(u->defined_namespace, "{{ENUM_NAME}}Variant");
 
